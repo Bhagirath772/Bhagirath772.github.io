@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LicenseIQ — Software Compliance Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Clash+Display:wght@400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #09090f;
+    --surface: #0f0f1a;
+    --surface2: #151525;
+    --surface3: #1c1c30;
+    --border: rgba(120,120,200,0.12);
+    --border2: rgba(120,120,200,0.22);
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --accent3: #38bdf8;
+    --green: #34d399;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --orange: #fb923c;
+    --text: #e8e8f0;
+    --text2: #9090b0;
+    --text3: #5a5a80;
+    --glow: rgba(108,99,255,0.18);
+    --glow2: rgba(56,189,248,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRAIN OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.5;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 100; padding: 0;
+  }
+  .logo {
+    padding: 28px 24px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-mark {
+    font-family: 'Clash Display', sans-serif;
+    font-size: 20px; font-weight: 700;
+    color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .logo-sub { font-size: 10px; color: var(--text3); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+  .nav { padding: 20px 0; flex: 1; overflow-y: auto; }
+  .nav-section { margin-bottom: 24px; }
+  .nav-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); padding: 0 24px 8px; font-family: 'DM Mono', monospace; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 24px; font-size: 14px; font-weight: 600;
+    color: var(--text2); cursor: pointer;
+    transition: all 0.15s; position: relative;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active {
+    color: var(--accent2);
+    background: linear-gradient(90deg, rgba(108,99,255,0.12), transparent);
+  }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--accent3));
+    border-radius: 0 2px 2px 0;
+  }
+  .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+  .nav-badge {
+    margin-left: auto; background: var(--red);
+    color: white; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px; font-family: 'DM Mono', monospace;
+  }
+  .nav-badge.warn { background: var(--yellow); color: #1a1a00; }
+
+  .sidebar-footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 24px;
+  }
+  .user-card {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 700; }
+  .user-role { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+
+  /* MAIN */
+  .main { margin-left: 240px; min-height: 100vh; }
+
+  /* TOPBAR */
+  .topbar {
+    height: 64px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    background: rgba(9,9,15,0.8);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 50;
+  }
+  .page-title { font-family: 'Clash Display', sans-serif; font-size: 18px; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; color: var(--text2);
+    font-family: 'DM Mono', monospace;
+    cursor: pointer; transition: border-color 0.2s;
+    min-width: 200px;
+  }
+  .search-box input {
+    background: none; border: none; outline: none; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 13px; width: 100%;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+  .topbar-btn {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; transition: all 0.15s;
+    position: relative;
+  }
+  .topbar-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .notif-dot {
+    position: absolute; top: 6px; right: 6px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--red); border: 1.5px solid var(--bg);
+  }
+  .add-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    border: none; border-radius: 8px;
+    padding: 9px 18px; color: white;
+    font-size: 13px; font-weight: 700; font-family: 'Syne', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 20px rgba(108,99,255,0.3);
+  }
+  .add-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(108,99,255,0.45); }
+
+  /* CONTENT */
+  .content { padding: 32px; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px 24px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .kpi-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .kpi-card::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top right, var(--card-glow, transparent) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .kpi-card.green { --card-glow: rgba(52,211,153,0.08); }
+  .kpi-card.red { --card-glow: rgba(248,113,113,0.08); }
+  .kpi-card.blue { --card-glow: rgba(56,189,248,0.08); }
+  .kpi-card.purple { --card-glow: rgba(167,139,250,0.08); }
+
+  .kpi-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .kpi-label { font-size: 12px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; }
+  .kpi-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .kpi-icon.green { background: rgba(52,211,153,0.12); }
+  .kpi-icon.red { background: rgba(248,113,113,0.12); }
+  .kpi-icon.blue { background: rgba(56,189,248,0.12); }
+  .kpi-icon.purple { background: rgba(167,139,250,0.12); }
+  .kpi-value { font-family: 'Clash Display', sans-serif; font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+  .kpi-change { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; }
+  .kpi-change .up { color: var(--green); }
+  .kpi-change .down { color: var(--red); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+  .grid-3-1 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; margin-bottom: 28px; }
+
+  /* CARD */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .card-header {
+    padding: 20px 24px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-title { font-size: 14px; font-weight: 700; }
+  .card-sub { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .card-action {
+    font-size: 12px; color: var(--accent2); cursor: pointer; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .card-body { padding: 20px 24px; }
+
+  /* STATUS PILLS */
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .pill::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .pill.active { background: rgba(52,211,153,0.12); color: var(--green); }
+  .pill.expired { background: rgba(248,113,113,0.12); color: var(--red); }
+  .pill.warning { background: rgba(251,191,36,0.12); color: var(--yellow); }
+  .pill.inactive { background: rgba(90,90,128,0.15); color: var(--text3); }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th {
+    text-align: left; padding: 10px 16px;
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+  }
+  .data-table td {
+    padding: 13px 16px; font-size: 13px; color: var(--text2);
+    border-bottom: 1px solid rgba(120,120,200,0.06);
+    vertical-align: middle;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--surface2); color: var(--text); }
+  .data-table td:first-child { color: var(--text); font-weight: 600; }
+
+  .software-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; margin-right: 10px; vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--text3); border-radius: 6px; padding: 4px 10px;
+    font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+  /* PROGRESS BARS */
+  .progress-item { margin-bottom: 18px; }
+  .progress-item:last-child { margin-bottom: 0; }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .progress-name { font-size: 13px; font-weight: 600; }
+  .progress-count { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; }
+  .progress-bar-bg {
+    height: 6px; background: var(--surface3); border-radius: 3px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--bar-start), var(--bar-end));
+    transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* ALERTS */
+  .alert-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid rgba(120,120,200,0.06);
+  }
+  .alert-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .alert-dot {
+    width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+  }
+  .alert-dot.critical { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .alert-dot.warn { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+  .alert-dot.info { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); }
+  .alert-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+  .alert-desc { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; line-height: 1.5; }
+  .alert-time { font-size: 11px; color: var(--text3); margin-left: auto; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+
+  /* COMPLIANCE METER */
+  .compliance-ring {
+    display: flex; flex-direction: column; align-items: center; padding: 20px 0;
+  }
+  .ring-label { font-family: 'Clash Display', sans-serif; font-size: 42px; font-weight: 700; }
+  .ring-sub { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 4px; }
+
+  /* EXPIRY TIMELINE */
+  .timeline-item {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 0; border-bottom: 1px solid rgba(120,120,200,0.06);
+  }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-date {
+    font-family: 'DM Mono', monospace; font-size: 11px;
+    color: var(--text3); min-width: 70px; text-align: right;
+  }
+  .timeline-bar { flex: 1; height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+  .timeline-fill { height: 100%; border-radius: 2px; }
+  .timeline-name { font-size: 13px; font-weight: 600; min-width: 120px; }
+  .timeline-days { font-family: 'DM Mono', monospace; font-size: 11px; min-width: 60px; text-align: right; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 200; display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 32px; width: 520px; max-width: 95vw;
+    position: relative; animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: none; } }
+  .modal-title { font-family: 'Clash Display', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .modal-sub { font-size: 13px; color: var(--text3); margin-bottom: 28px; font-family: 'DM Mono', monospace; }
+  .modal-close {
+    position: absolute; top: 20px; right: 20px;
+    width: 32px; height: 32px; border-radius: 8px; background: var(--surface2);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: var(--text3); transition: all 0.15s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--border2); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-field { display: flex; flex-direction: column; gap: 6px; }
+  .form-field.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; font-family: 'DM Mono', monospace; }
+  .form-input, .form-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px;
+    color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select { cursor: pointer; }
+  .form-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
+  .btn-secondary {
+    padding: 10px 20px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text2); font-size: 13px; font-weight: 600;
+    cursor: pointer; font-family: 'Syne', sans-serif; transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--border2); color: var(--text); }
+  .btn-primary {
+    padding: 10px 24px; background: linear-gradient(135deg, var(--accent), #4f46e5);
+    border: none; border-radius: 8px; color: white; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: 'Syne', sans-serif; transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(108,99,255,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(108,99,255,0.45); }
+
+  /* AI CHAT */
+  .ai-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .ai-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ai-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent3));
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .ai-name { font-size: 14px; font-weight: 700; }
+  .ai-status { font-size: 11px; color: var(--green); font-family: 'DM Mono', monospace; }
+  .ai-messages { height: 280px; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .ai-msg { display: flex; gap: 10px; align-items: flex-start; }
+  .ai-msg.user { flex-direction: row-reverse; }
+  .ai-bubble {
+    max-width: 80%; padding: 10px 14px; border-radius: 12px;
+    font-size: 13px; line-height: 1.5; font-family: 'DM Mono', monospace;
+  }
+  .ai-msg:not(.user) .ai-bubble { background: var(--surface2); color: var(--text); border-bottom-left-radius: 4px; }
+  .ai-msg.user .ai-bubble { background: linear-gradient(135deg, var(--accent), #4f46e5); color: white; border-bottom-right-radius: 4px; }
+  .msg-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .msg-avatar.ai-av { background: linear-gradient(135deg, var(--accent), var(--accent3)); }
+  .msg-avatar.user-av { background: var(--surface3); color: var(--text2); }
+  .ai-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
+  .ai-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 14px; color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 12px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .ai-input:focus { border-color: var(--accent); }
+  .ai-send {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #4f46e5);
+    border: none; color: white; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .ai-send:hover { transform: scale(1.05); }
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); animation: typing 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+  /* INVENTORY PAGE */
+  .page-controls { display: flex; gap: 12px; margin-bottom: 24px; align-items: center; }
+  .filter-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+    cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace;
+  }
+  .filter-btn:hover, .filter-btn.active { border-color: var(--accent); color: var(--accent2); background: rgba(108,99,255,0.08); }
+  .page-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 14px; margin-left: auto;
+  }
+  .page-search input { background: none; border: none; outline: none; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; width: 180px; }
+  .page-search input::placeholder { color: var(--text3); }
+
+  /* REPORTS PAGE */
+  .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px; }
+  .report-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 24px; cursor: pointer; transition: all 0.2s;
+  }
+  .report-card:hover { border-color: var(--border2); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .report-icon { font-size: 28px; margin-bottom: 14px; }
+  .report-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .report-desc { font-size: 12px; color: var(--text3); line-height: 1.5; font-family: 'DM Mono', monospace; }
+  .report-meta { font-size: 11px; color: var(--text3); margin-top: 14px; font-family: 'DM Mono', monospace; border-top: 1px solid var(--border); padding-top: 12px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 4px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .card, .kpi-card { animation: fadeUp 0.4s ease both; }
+  .kpi-card:nth-child(2) { animation-delay: 0.05s; }
+  .kpi-card:nth-child(3) { animation-delay: 0.1s; }
+  .kpi-card:nth-child(4) { animation-delay: 0.15s; }
+
+  /* TAG */
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace;
+    background: var(--surface3); color: var(--text3);
+  }
+
+  /* COMPLIANCE PAGE */
+  .compliance-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 28px; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 300;
+    background: var(--surface); border: 1px solid var(--green);
+    border-radius: 10px; padding: 14px 20px; min-width: 280px;
+    display: flex; align-items: center; gap: 12px; font-size: 13px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1);
+    display: none;
+  }
+  .toast.show { display: flex; }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+  .toast-icon { font-size: 18px; }
+  .toast-msg { flex: 1; font-weight: 600; }
+  .toast-close { cursor: pointer; color: var(--text3); font-size: 16px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-icon">🔐</div>
+      <div>
+        LicenseIQ
+        <div class="logo-sub">Compliance Platform</div>
+      </div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <button class="nav-item active" onclick="showPage('dashboard', this)"><span class="nav-icon">⬛</span> Dashboard</button>
+      <button class="nav-item" onclick="showPage('compliance', this)"><span class="nav-icon">✅</span> Compliance <span class="nav-badge">3</span></button>
+      <button class="nav-item" onclick="showPage('alerts', this)"><span class="nav-icon">🔔</span> Alerts <span class="nav-badge warn">5</span></button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Assets</div>
+      <button class="nav-item" onclick="showPage('inventory', this)"><span class="nav-icon">📦</span> Inventory</button>
+      <button class="nav-item" onclick="showPage('licenses', this)"><span class="nav-icon">🔑</span> Licenses</button>
+      <button class="nav-item" onclick="showPage('users', this)"><span class="nav-icon">👥</span> Allocations</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <button class="nav-item" onclick="showPage('reports', this)"><span class="nav-icon">📊</span> Reports</button>
+      <button class="nav-item" onclick="showPage('ai', this)"><span class="nav-icon">🤖</span> AI Advisor</button>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="user-avatar">AJ</div>
+      <div>
+        <div class="user-name">Arjun Joshi</div>
+        <div class="user-role">License Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Dashboard</div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <span style="color:var(--text3)">🔍</span>
+        <input type="text" placeholder="Search licenses, software..." />
+      </div>
+      <div class="topbar-btn" title="Notifications">🔔 <span class="notif-dot"></span></div>
+      <div class="topbar-btn" title="Settings">⚙️</div>
+      <button class="add-btn" onclick="openModal()">+ Add License</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card purple">
+          <div class="kpi-header"><span class="kpi-label">Total Software</span><div class="kpi-icon purple">📦</div></div>
+          <div class="kpi-value">47</div>
+          <div class="kpi-change"><span class="up">↑ 3</span> added this month</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-header"><span class="kpi-label">Active Licenses</span><div class="kpi-icon green">✅</div></div>
+          <div class="kpi-value">1,284</div>
+          <div class="kpi-change"><span class="up">↑ 12%</span> vs last quarter</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-header"><span class="kpi-label">Non-Compliant</span><div class="kpi-icon red">⚠️</div></div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-change"><span class="down">↑ 1</span> since last week</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-header"><span class="kpi-label">Annual Cost</span><div class="kpi-icon blue">💰</div></div>
+          <div class="kpi-value">$482K</div>
+          <div class="kpi-change"><span class="up">8%</span> savings identified</div>
+        </div>
+      </div>
+
+      <div class="grid-3-1">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">License Utilization by Software</div><div class="card-sub">Purchased vs. Assigned seats</div></div>
+            <span class="card-action">View All →</span>
+          </div>
+          <div class="card-body">
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-name">🅰️ Adobe Creative Cloud</span>
+                <span class="progress-count">142 / 150</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:94%;--bar-start:#f87171;--bar-end:#ef4444"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-name">💼 Microsoft 365</span>
+                <span class="progress-count">380 / 500</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:76%;--bar-start:#6c63ff;--bar-end:#4f46e5"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-name">🤝 Salesforce CRM</span>
+                <span class="progress-count">88 / 100</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:88%;--bar-start:#fbbf24;--bar-end:#f59e0b"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-name">💻 JetBrains Suite</span>
+                <span class="progress-count">45 / 80</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:56%;--bar-start:#34d399;--bar-end:#10b981"></div></div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-header">
+                <span class="progress-name">🔒 Okta SSO</span>
+                <span class="progress-count">210 / 250</span>
+              </div>
+              <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:84%;--bar-start:#38bdf8;--bar-end:#0ea5e9"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Compliance Status</div><div class="card-sub">Across all software</div></div>
+          </div>
+          <div class="card-body">
+            <canvas id="complianceChart" height="180"></canvas>
+            <div style="display:flex;gap:16px;justify-content:center;margin-top:14px;font-size:12px;font-family:'DM Mono',monospace;">
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block"></span>Compliant (44)</span>
+              <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block"></span>Non-Compliant (3)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Upcoming Expirations</div><div class="card-sub">Next 90 days</div></div>
+            <span class="card-action">Renew All →</span>
+          </div>
+          <div class="card-body">
+            <div class="timeline-item">
+              <div class="timeline-name">Adobe CC</div>
+              <div class="timeline-bar"><div class="timeline-fill" style="width:15%;background:var(--red)"></div></div>
+              <div class="timeline-days" style="color:var(--red)">12 days</div>
+              <div class="timeline-date">Apr 11, 2026</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-name">Slack Business</div>
+              <div class="timeline-bar"><div class="timeline-fill" style="width:35%;background:var(--yellow)"></div></div>
+              <div class="timeline-days" style="color:var(--yellow)">28 days</div>
+              <div class="timeline-date">Apr 27, 2026</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-name">GitHub Enterprise</div>
+              <div class="timeline-bar"><div class="timeline-fill" style="width:55%;background:var(--yellow)"></div></div>
+              <div class="timeline-days" style="color:var(--yellow)">44 days</div>
+              <div class="timeline-date">May 13, 2026</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-name">AWS Business</div>
+              <div class="timeline-bar"><div class="timeline-fill" style="width:72%;background:var(--accent3)"></div></div>
+              <div class="timeline-days" style="color:var(--accent3)">58 days</div>
+              <div class="timeline-date">May 27, 2026</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-name">Jira Software</div>
+              <div class="timeline-bar"><div class="timeline-fill" style="width:90%;background:var(--green)"></div></div>
+              <div class="timeline-days" style="color:var(--green)">73 days</div>
+              <div class="timeline-date">Jun 11, 2026</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div><div class="card-title">Active Alerts</div><div class="card-sub">Requires attention</div></div>
+            <span class="card-action">View All →</span>
+          </div>
+          <div class="card-body">
+            <div class="alert-item">
+              <div class="alert-dot critical"></div>
+              <div>
+                <div class="alert-title">Adobe CC — Over-Licensed!</div>
+                <div class="alert-desc">142 assigned / 150 purchased · 8 left · at risk</div>
+              </div>
+              <div class="alert-time">2h ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot critical"></div>
+              <div>
+                <div class="alert-title">AutoCAD LT — EXPIRED</div>
+                <div class="alert-desc">License expired Mar 15, 2026 · 12 users affected</div>
+              </div>
+              <div class="alert-time">15d ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot warn"></div>
+              <div>
+                <div class="alert-title">Adobe CC expires in 12 days</div>
+                <div class="alert-desc">Renewal required by Apr 11 · $24,600/yr</div>
+              </div>
+              <div class="alert-time">1d ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot warn"></div>
+              <div>
+                <div class="alert-title">Zoom Pro — 3 unused seats</div>
+                <div class="alert-desc">Potential cost savings of $540/yr detected</div>
+              </div>
+              <div class="alert-time">3d ago</div>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot info"></div>
+              <div>
+                <div class="alert-title">Quarterly audit scheduled</div>
+                <div class="alert-desc">Apr 5, 2026 — export reports to prepare</div>
+              </div>
+              <div class="alert-time">5d ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVENTORY PAGE -->
+    <div class="page" id="page-inventory">
+      <div class="page-controls">
+        <button class="filter-btn active">All (47)</button>
+        <button class="filter-btn">Active (44)</button>
+        <button class="filter-btn">Expiring (5)</button>
+        <button class="filter-btn">Expired (3)</button>
+        <div class="page-search">
+          <span style="color:var(--text3)">🔍</span>
+          <input type="text" placeholder="Search software..." />
+        </div>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Software</th>
+              <th>Vendor</th>
+              <th>Version</th>
+              <th>Type</th>
+              <th>Licenses</th>
+              <th>Used</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="inventoryTable">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LICENSES PAGE -->
+    <div class="page" id="page-licenses">
+      <div class="page-controls">
+        <button class="filter-btn active">All</button>
+        <button class="filter-btn">Active</button>
+        <button class="filter-btn">Expiring Soon</button>
+        <button class="filter-btn">Expired</button>
+        <div class="page-search" style="margin-left:auto">
+          <span style="color:var(--text3)">🔍</span>
+          <input type="text" placeholder="Search license key..." />
+        </div>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>License Key</th>
+              <th>Software</th>
+              <th>Seats</th>
+              <th>Cost/yr</th>
+              <th>Expiry</th>
+              <th>Assigned To</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="licenseTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS PAGE -->
+    <div class="page" id="page-users">
+      <div class="page-controls">
+        <button class="filter-btn active">All Users</button>
+        <button class="filter-btn">Engineering</button>
+        <button class="filter-btn">Design</button>
+        <button class="filter-btn">Sales</button>
+        <div class="page-search" style="margin-left:auto">
+          <span style="color:var(--text3)">🔍</span>
+          <input type="text" placeholder="Search users..." />
+        </div>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Assigned Licenses</th>
+              <th>Monthly Cost</th>
+              <th>Last Active</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- COMPLIANCE PAGE -->
+    <div class="page" id="page-compliance">
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-header"><span class="kpi-label">Compliance Rate</span><div class="kpi-icon green">✅</div></div>
+          <div class="kpi-value">93.6%</div>
+          <div class="kpi-change"><span class="up">↑ 2.1%</span> vs last month</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-header"><span class="kpi-label">Violations</span><div class="kpi-icon red">🚨</div></div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-change"><span class="down">2 critical</span>, 1 warning</div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-header"><span class="kpi-label">Risk Score</span><div class="kpi-icon blue">⚠️</div></div>
+          <div class="kpi-value">Low</div>
+          <div class="kpi-change">Score: <span style="color:var(--green)">18 / 100</span></div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-header"><span class="kpi-label">Savings Found</span><div class="kpi-icon purple">💡</div></div>
+          <div class="kpi-value">$38K</div>
+          <div class="kpi-change">15 unused licenses identified</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Compliance Engine Results</div><div class="card-sub">Purchased - Installed = Status</div></div></div>
+          <div class="card-body">
+            <table class="data-table">
+              <thead><tr><th>Software</th><th>Purchased</th><th>Installed</th><th>Delta</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>Adobe CC</td><td>150</td><td>142</td><td style="color:var(--yellow)">+8</td><td><span class="pill warning">At Risk</span></td></tr>
+                <tr><td>Microsoft 365</td><td>500</td><td>380</td><td style="color:var(--green)">+120</td><td><span class="pill active">Compliant</span></td></tr>
+                <tr><td>AutoCAD LT</td><td>20</td><td>32</td><td style="color:var(--red)">−12</td><td><span class="pill expired">Violation</span></td></tr>
+                <tr><td>Salesforce</td><td>100</td><td>88</td><td style="color:var(--green)">+12</td><td><span class="pill active">Compliant</span></td></tr>
+                <tr><td>Zoom Pro</td><td>50</td><td>47</td><td style="color:var(--green)">+3</td><td><span class="pill active">Compliant</span></td></tr>
+                <tr><td>Figma Org</td><td>30</td><td>41</td><td style="color:var(--red)">−11</td><td><span class="pill expired">Violation</span></td></tr>
+                <tr><td>GitHub Ent.</td><td>80</td><td>78</td><td style="color:var(--green)">+2</td><td><span class="pill active">Compliant</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div><div class="card-title">Monthly Spend Trend</div><div class="card-sub">License cost over 12 months</div></div></div>
+          <div class="card-body">
+            <canvas id="spendChart" height="220"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS PAGE -->
+    <div class="page" id="page-alerts">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card" style="border-color:rgba(248,113,113,0.3)">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="font-size:24px">🔴</div>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--red);margin-bottom:4px">CRITICAL: AutoCAD LT License Expired</div>
+                <div style="font-size:13px;color:var(--text2);font-family:'DM Mono',monospace">License expired on Mar 15, 2026 · 12 users currently blocked · Vendor: Autodesk · Annual cost: $18,400</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="action-btn" style="border-color:var(--red);color:var(--red)">Renew Now</button>
+                <button class="action-btn">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(248,113,113,0.3)">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="font-size:24px">🔴</div>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--red);margin-bottom:4px">CRITICAL: Figma Over-Licensed (11 excess)</div>
+                <div style="font-size:13px;color:var(--text2);font-family:'DM Mono',monospace">41 installations detected · only 30 licenses purchased · Legal risk · Action required immediately</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="action-btn" style="border-color:var(--red);color:var(--red)">Buy More</button>
+                <button class="action-btn">Investigate</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(251,191,36,0.25)">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="font-size:24px">⚠️</div>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--yellow);margin-bottom:4px">WARNING: Adobe CC expires in 12 days</div>
+                <div style="font-size:13px;color:var(--text2);font-family:'DM Mono',monospace">150 seats expiring Apr 11, 2026 · $24,600/yr · Vendor: Adobe · Auto-renewal: OFF</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="action-btn" style="border-color:var(--yellow);color:var(--yellow)">Enable Auto-Renew</button>
+                <button class="action-btn">Snooze 7d</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(251,191,36,0.25)">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="font-size:24px">⚠️</div>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--yellow);margin-bottom:4px">WARNING: Slack Business expires in 28 days</div>
+                <div style="font-size:13px;color:var(--text2);font-family:'DM Mono',monospace">200 seats · Apr 27, 2026 · $16,000/yr · Vendor: Salesforce</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="action-btn" style="border-color:var(--yellow);color:var(--yellow)">Schedule Renewal</button>
+                <button class="action-btn">Snooze 7d</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(56,189,248,0.2)">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="font-size:24px">💡</div>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:var(--accent3);margin-bottom:4px">INSIGHT: 3 unused Zoom Pro seats detected</div>
+                <div style="font-size:13px;color:var(--text2);font-family:'DM Mono',monospace">Users: raj.patel, priya.singh, dev.kumar · No login in 90+ days · Savings: $540/yr</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="action-btn" style="border-color:var(--accent3);color:var(--accent3)">Reclaim</button>
+                <button class="action-btn">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REPORTS PAGE -->
+    <div class="page" id="page-reports">
+      <div class="report-grid">
+        <div class="report-card">
+          <div class="report-icon">📋</div>
+          <div class="report-name">Compliance Summary</div>
+          <div class="report-desc">Full compliance status across all software assets with violation details.</div>
+          <div class="report-meta">📅 Last generated: Mar 28, 2026 · PDF/CSV</div>
+        </div>
+        <div class="report-card">
+          <div class="report-icon">💰</div>
+          <div class="report-name">Cost Analysis</div>
+          <div class="report-desc">License spend breakdown by department, vendor, and software category.</div>
+          <div class="report-meta">📅 Last generated: Mar 25, 2026 · PDF/XLSX</div>
+        </div>
+        <div class="report-card">
+          <div class="report-icon">📅</div>
+          <div class="report-name">Expiration Calendar</div>
+          <div class="report-desc">All licenses expiring in next 30/60/90 days with renewal deadlines.</div>
+          <div class="report-meta">📅 Last generated: Mar 30, 2026 · PDF</div>
+        </div>
+        <div class="report-card">
+          <div class="report-icon">👥</div>
+          <div class="report-name">User Allocation Audit</div>
+          <div class="report-desc">Per-user license assignment with last login and utilization scores.</div>
+          <div class="report-meta">📅 Last generated: Mar 20, 2026 · CSV</div>
+        </div>
+        <div class="report-card">
+          <div class="report-icon">🔍</div>
+          <div class="report-name">Shadow IT Detection</div>
+          <div class="report-desc">Unauthorized software installations detected on endpoints.</div>
+          <div class="report-meta">📅 Last generated: Mar 22, 2026 · PDF</div>
+        </div>
+        <div class="report-card">
+          <div class="report-icon">📈</div>
+          <div class="report-name">Optimization Report</div>
+          <div class="report-desc">AI-identified savings opportunities and license right-sizing suggestions.</div>
+          <div class="report-meta">📅 Last generated: Mar 29, 2026 · PDF</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div><div class="card-title">License Cost by Category</div><div class="card-sub">Annual spend distribution</div></div></div>
+        <div class="card-body">
+          <canvas id="categoryChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI ADVISOR PAGE -->
+    <div class="page" id="page-ai">
+      <div class="grid-2">
+        <div class="ai-panel" style="grid-column:1/-1">
+          <div class="ai-header">
+            <div class="ai-avatar">🤖</div>
+            <div>
+              <div class="ai-name">LicenseIQ AI Advisor</div>
+              <div class="ai-status">● Online · Powered by Claude</div>
+            </div>
+          </div>
+          <div class="ai-messages" id="aiMessages">
+            <div class="ai-msg">
+              <div class="msg-avatar ai-av">🤖</div>
+              <div class="ai-bubble">Hello! I'm your AI License Advisor. I can analyze your compliance status, identify cost savings, predict expiration risks, and answer any questions about your software portfolio. What would you like to know?</div>
+            </div>
+          </div>
+          <div class="ai-input-area">
+            <input class="ai-input" id="aiInput" type="text" placeholder="Ask about compliance, costs, renewals, or optimization..." onkeydown="if(event.key==='Enter')sendAIMessage()" />
+            <button class="ai-send" onclick="sendAIMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:12px">QUICK PROMPTS</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="filter-btn" onclick="quickPrompt('What is our current compliance rate and main risks?')">📊 Compliance Overview</button>
+          <button class="filter-btn" onclick="quickPrompt('Which licenses can we eliminate to save costs?')">💰 Cost Optimization</button>
+          <button class="filter-btn" onclick="quickPrompt('Which licenses are expiring in the next 30 days?')">📅 Expiration Risk</button>
+          <button class="filter-btn" onclick="quickPrompt('Generate a compliance audit summary for management')">📋 Audit Summary</button>
+          <button class="filter-btn" onclick="quickPrompt('Which users have unused licenses?')">👥 Unused Licenses</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- ADD LICENSE MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal()">✕</div>
+    <div class="modal-title">Add New License</div>
+    <div class="modal-sub">Fill in the license details below to add it to your inventory.</div>
+    <div class="form-grid">
+      <div class="form-field full">
+        <label class="form-label">Software Name</label>
+        <input class="form-input" type="text" placeholder="e.g. Adobe Creative Cloud" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Vendor</label>
+        <input class="form-input" type="text" placeholder="e.g. Adobe Inc." />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Version</label>
+        <input class="form-input" type="text" placeholder="e.g. 2024" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">License Key</label>
+        <input class="form-input" type="text" placeholder="XXXX-XXXX-XXXX-XXXX" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Total Seats</label>
+        <input class="form-input" type="number" placeholder="e.g. 50" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Annual Cost ($)</label>
+        <input class="form-input" type="number" placeholder="e.g. 12000" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">Expiry Date</label>
+        <input class="form-input" type="date" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">License Type</label>
+        <select class="form-select">
+          <option>Subscription (SaaS)</option>
+          <option>Perpetual</option>
+          <option>Per-Seat</option>
+          <option>Enterprise Agreement</option>
+          <option>Open Source</option>
+        </select>
+      </div>
+      <div class="form-field full">
+        <label class="form-label">Department</label>
+        <select class="form-select">
+          <option>All Departments</option>
+          <option>Engineering</option>
+          <option>Design</option>
+          <option>Sales</option>
+          <option>HR</option>
+          <option>Finance</option>
+          <option>Marketing</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveLicense()">Save License</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✅</span>
+  <span class="toast-msg" id="toastMsg">License added successfully!</span>
+  <span class="toast-close" onclick="closeToast()">✕</span>
+</div>
+
+<script>
+// ===== DATA =====
+const softwareData = [
+  { name: 'Adobe Creative Cloud', vendor: 'Adobe Inc.', version: '2024', type: 'SaaS', licenses: 150, used: 142, status: 'warning', icon: '🎨' },
+  { name: 'Microsoft 365', vendor: 'Microsoft', version: 'E3', type: 'Enterprise', licenses: 500, used: 380, status: 'active', icon: '💼' },
+  { name: 'Salesforce CRM', vendor: 'Salesforce', version: 'Enterprise', type: 'SaaS', licenses: 100, used: 88, status: 'active', icon: '🤝' },
+  { name: 'AutoCAD LT', vendor: 'Autodesk', version: '2024', type: 'Perpetual', licenses: 20, used: 32, status: 'expired', icon: '📐' },
+  { name: 'JetBrains Suite', vendor: 'JetBrains', version: '2024.1', type: 'Per-Seat', licenses: 80, used: 45, status: 'active', icon: '💻' },
+  { name: 'Okta SSO', vendor: 'Okta', version: 'Business', type: 'SaaS', licenses: 250, used: 210, status: 'active', icon: '🔒' },
+  { name: 'Figma Organization', vendor: 'Figma Inc.', version: '—', type: 'SaaS', licenses: 30, used: 41, status: 'expired', icon: '✏️' },
+  { name: 'GitHub Enterprise', vendor: 'GitHub/Microsoft', version: '3.x', type: 'Enterprise', licenses: 80, used: 78, status: 'active', icon: '🐙' },
+  { name: 'Slack Business+', vendor: 'Salesforce', version: '—', type: 'SaaS', licenses: 200, used: 188, status: 'warning', icon: '💬' },
+  { name: 'Zoom Pro', vendor: 'Zoom Video', version: '—', type: 'SaaS', licenses: 50, used: 47, status: 'active', icon: '📹' },
+];
+
+const licenseData = [
+  { key: 'ACC-2024-****-7F2A', software: 'Adobe CC', seats: 150, cost: '$24,600', expiry: 'Apr 11, 2026', assigned: 'All Depts', status: 'warning' },
+  { key: 'M365-E3-****-9C41', software: 'Microsoft 365', seats: 500, cost: '$72,000', expiry: 'Sep 1, 2026', assigned: 'All Depts', status: 'active' },
+  { key: 'SF-ENT-****-3B12', software: 'Salesforce CRM', seats: 100, cost: '$36,000', expiry: 'Jul 15, 2026', assigned: 'Sales', status: 'active' },
+  { key: 'AUT-LT-****-1A08', software: 'AutoCAD LT', seats: 20, cost: '$18,400', expiry: 'Mar 15, 2026', assigned: 'Engineering', status: 'expired' },
+  { key: 'JB-ALL-****-5D30', software: 'JetBrains Suite', seats: 80, cost: '$12,800', expiry: 'Aug 20, 2026', assigned: 'Engineering', status: 'active' },
+  { key: 'OKTA-BIZ-****-2E19', software: 'Okta SSO', seats: 250, cost: '$30,000', expiry: 'Dec 1, 2026', assigned: 'IT', status: 'active' },
+  { key: 'FIG-ORG-****-6F44', software: 'Figma Org', seats: 30, cost: '$5,400', expiry: 'Feb 28, 2026', assigned: 'Design', status: 'expired' },
+  { key: 'GH-ENT-****-8A22', software: 'GitHub Enterprise', seats: 80, cost: '$19,200', expiry: 'May 13, 2026', assigned: 'Engineering', status: 'warning' },
+];
+
+const usersData = [
+  { name: 'Priya Sharma', dept: 'Engineering', licenses: 'JetBrains, GitHub, M365, Okta', cost: '$290', last: '30 Mar 2026' },
+  { name: 'Rahul Mehta', dept: 'Design', licenses: 'Adobe CC, Figma, Slack, Zoom', cost: '$210', last: '30 Mar 2026' },
+  { name: 'Anita Nair', dept: 'Sales', licenses: 'Salesforce, M365, Zoom, Slack', cost: '$185', last: '29 Mar 2026' },
+  { name: 'Vikram Singh', dept: 'Engineering', licenses: 'AutoCAD, GitHub, JetBrains', cost: '$340', last: '28 Mar 2026' },
+  { name: 'Deepa Patel', dept: 'HR', licenses: 'M365, Slack, Zoom', cost: '$95', last: '27 Mar 2026' },
+  { name: 'Arun Kumar', dept: 'Finance', licenses: 'M365, Okta, Slack', cost: '$110', last: '30 Mar 2026' },
+  { name: 'Sneha Joshi', dept: 'Marketing', licenses: 'Adobe CC, Canva, Slack, Zoom', cost: '$240', last: '30 Mar 2026' },
+  { name: 'Ravi Bhat', dept: 'Engineering', licenses: 'JetBrains, GitHub, M365', cost: '$265', last: '30 Mar 2026' },
+];
+
+// ===== RENDER TABLES =====
+function renderInventory() {
+  const tbody = document.getElementById('inventoryTable');
+  tbody.innerHTML = softwareData.map(s => {
+    const pct = Math.round(s.used/s.licenses*100);
+    const statusClass = s.status === 'active' ? 'active' : s.status === 'expired' ? 'expired' : 'warning';
+    const statusLabel = s.status === 'active' ? 'Compliant' : s.status === 'expired' ? 'Violation' : 'At Risk';
+    return `<tr>
+      <td><span class="software-icon" style="background:var(--surface2)">${s.icon}</span>${s.name}</td>
+      <td>${s.vendor}</td>
+      <td><span class="tag">${s.version}</span></td>
+      <td><span class="tag">${s.type}</span></td>
+      <td style="font-family:'DM Mono',monospace">${s.licenses}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="progress-bar-bg" style="width:60px;flex-shrink:0"><div class="progress-bar-fill" style="width:${pct}%;--bar-start:${pct>90?'#f87171':pct>75?'#fbbf24':'#34d399'};--bar-end:${pct>90?'#ef4444':pct>75?'#f59e0b':'#10b981'}"></div></div>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text3)">${s.used}/${s.licenses}</span>
+        </div>
+      </td>
+      <td><span class="pill ${statusClass}">${statusLabel}</span></td>
+      <td><button class="action-btn">Edit</button> <button class="action-btn">View</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderLicenses() {
+  const tbody = document.getElementById('licenseTable');
+  tbody.innerHTML = licenseData.map(l => {
+    const sc = l.status === 'active' ? 'active' : l.status === 'expired' ? 'expired' : 'warning';
+    const sl = l.status === 'active' ? 'Active' : l.status === 'expired' ? 'Expired' : 'Expiring';
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${l.key}</td>
+      <td>${l.software}</td>
+      <td style="font-family:'DM Mono',monospace">${l.seats}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--green)">${l.cost}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;color:${l.status==='expired'?'var(--red)':l.status==='warning'?'var(--yellow)':'var(--text2)'}">${l.expiry}</td>
+      <td>${l.assigned}</td>
+      <td><span class="pill ${sc}">${sl}</span></td>
+      <td><button class="action-btn">Renew</button> <button class="action-btn">Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('usersTable');
+  tbody.innerHTML = usersData.map(u => {
+    const initials = u.name.split(' ').map(n=>n[0]).join('');
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent3));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${initials}</div>
+          ${u.name}
+        </div>
+      </td>
+      <td><span class="tag">${u.dept}</span></td>
+      <td style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace">${u.licenses}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--green)">${u.cost}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${u.last}</td>
+      <td><button class="action-btn">Manage</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== CHARTS =====
+Chart.defaults.color = '#9090b0';
+Chart.defaults.borderColor = 'rgba(120,120,200,0.1)';
+
+function initCharts() {
+  // Compliance donut
+  const ctx1 = document.getElementById('complianceChart');
+  if (ctx1) new Chart(ctx1, {
+    type: 'doughnut',
+    data: {
+      labels: ['Compliant', 'Non-Compliant'],
+      datasets: [{ data: [44, 3], backgroundColor: ['#34d399', '#f87171'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+      cutout: '72%', plugins: { legend: { display: false } },
+      animation: { animateScale: true }
+    }
+  });
+
+  // Spend trend
+  const ctx2 = document.getElementById('spendChart');
+  if (ctx2) new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
+      datasets: [{
+        label: 'Monthly Spend ($K)',
+        data: [38, 40, 39, 42, 41, 43, 44, 46, 44, 47, 45, 48],
+        borderColor: '#6c63ff',
+        backgroundColor: 'rgba(108,99,255,0.08)',
+        borderWidth: 2, fill: true, tension: 0.4,
+        pointBackgroundColor: '#6c63ff', pointRadius: 3, pointHoverRadius: 5
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(120,120,200,0.06)' } },
+        y: { grid: { color: 'rgba(120,120,200,0.06)' }, ticks: { callback: v => '$'+v+'K' } }
+      }
+    }
+  });
+
+  // Category bar
+  const ctx3 = document.getElementById('categoryChart');
+  if (ctx3) new Chart(ctx3, {
+    type: 'bar',
+    data: {
+      labels: ['Productivity', 'Dev Tools', 'Design', 'Security', 'CRM', 'Collaboration', 'Cloud'],
+      datasets: [{
+        data: [72, 32, 30, 30, 36, 22, 88],
+        backgroundColor: ['#6c63ff','#38bdf8','#f87171','#34d399','#fbbf24','#a78bfa','#fb923c'],
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: 'rgba(120,120,200,0.06)' }, ticks: { callback: v => '$'+v+'K' } }
+      }
+    }
+  });
+}
+
+// ===== NAVIGATION =====
+const pageTitles = {
+  dashboard: 'Dashboard',
+  inventory: 'Software Inventory',
+  licenses: 'License Registry',
+  users: 'User Allocations',
+  compliance: 'Compliance Engine',
+  alerts: 'Alert Center',
+  reports: 'Reports & Analytics',
+  ai: 'AI Advisor'
+};
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  document.getElementById('pageTitle').textContent = pageTitles[id] || id;
+}
+
+// ===== MODAL =====
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function saveLicense() {
+  closeModal();
+  showToast('License added successfully! ✅');
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+function closeToast() { document.getElementById('toast').classList.remove('show'); }
+
+// ===== AI CHAT =====
+const AI_SYSTEM = `You are LicenseIQ AI Advisor, an expert software license compliance assistant. You help with:
+- Software license compliance analysis
+- Cost optimization and savings identification  
+- Expiration risk assessment
+- User allocation recommendations
+- Audit preparation
+
+The company currently has:
+- 47 software assets, 1,284 active licenses
+- 93.6% compliance rate, 3 non-compliant items
+- AutoCAD LT: EXPIRED (32 installed, only 20 licensed) 
+- Figma Org: OVER-DEPLOYED (41 installed, 30 licensed)
+- Adobe CC: expiring Apr 11, 2026 (150 seats, $24,600/yr)
+- Slack Business: expiring Apr 27, 2026
+- Annual spend: ~$482,000
+- Potential savings: $38,000 identified (unused seats, right-sizing)
+
+Be concise, professional, and specific. Use bullet points when listing items. Provide actionable recommendations.`;
+
+async function sendAIMessage() {
+  const input = document.getElementById('aiInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const msgs = document.getElementById('aiMessages');
+  
+  // User message
+  msgs.innerHTML += `<div class="ai-msg user">
+    <div class="msg-avatar user-av">👤</div>
+    <div class="ai-bubble">${msg}</div>
+  </div>`;
+
+  // Typing indicator
+  const typingId = 'typing-' + Date.now();
+  msgs.innerHTML += `<div class="ai-msg" id="${typingId}">
+    <div class="msg-avatar ai-av">🤖</div>
+    <div class="ai-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>
+  </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: AI_SYSTEM,
+        messages: [{ role: 'user', content: msg }]
+      })
+    });
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'Sorry, I could not process that request.';
+
+    document.getElementById(typingId).outerHTML = `<div class="ai-msg">
+      <div class="msg-avatar ai-av">🤖</div>
+      <div class="ai-bubble">${reply.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  } catch (e) {
+    document.getElementById(typingId).outerHTML = `<div class="ai-msg">
+      <div class="msg-avatar ai-av">🤖</div>
+      <div class="ai-bubble">⚠️ Unable to connect to AI service. Please check your connection.</div>
+    </div>`;
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function quickPrompt(text) {
+  showPage('ai', document.querySelector('[onclick*="showPage(\'ai\'"]'));
+  document.getElementById('aiInput').value = text;
+  sendAIMessage();
+}
+
+// ===== FILTER BUTTONS =====
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const siblings = this.parentElement.querySelectorAll('.filter-btn');
+    siblings.forEach(s => s.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// ===== INIT =====
+renderInventory();
+renderLicenses();
+renderUsers();
+setTimeout(initCharts, 100);
+</script>
+</body>
+</html>
